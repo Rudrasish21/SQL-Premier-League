@@ -1,0 +1,124 @@
+/* Created a database called Premier_League_2023_2024 */
+Create Database Premier_League_2023_2024;
+Use Premier_League_2023_2024;
+/* We Imported the tables using table Data Import Wizard */
+Show Tables;
+/*Verifying the contents of the table*/
+Select * 
+From premierleague;
+
+SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS 
+  WHERE table_name = 'premierleague' AND COLUMN_NAME = 'starting_at';  
+/* We Can see that the Data type is Text*/ 
+/* To change the date type we are going to use str_to_date function */
+
+Set sql_safe_updates=0;
+ALTER TABLE premierleague 
+ADD Column matchday DATE;
+
+Update premierleague
+SET matchday = str_to_date(starting_at , "%m/%d/%Y");
+
+ALTER TABLE premierleague
+DROP Column starting_at;
+
+/*Find out How many rounds the premier league is played*/
+Select Count(*) 
+FROM
+(Select Distinct round_number
+From premierleague ) as a;
+
+/*Total wins, total loses and total draws of each home team*/
+CREATE VIEW team_performance_home_team AS
+Select e.home_team_name, e.Total_wins, e.Total_loses, f.Total_draws
+FROM
+(Select c.home_team_name, c.Total_wins, d.Total_loses 
+FROM
+(Select Distinct home_team_name, Count(Matchstatus) as Total_Wins, ''
+From
+(
+Select home_team_name, if(home_team_goals > away_team_goals, "Winner", "Loser") as Matchstatus
+From premierleague) as b
+Where Matchstatus = "winner"
+Group By home_team_name) as c
+LEFT JOIN
+(
+Select Distinct home_team_name, '', Count(Matchstatus) as Total_Loses
+From
+(
+Select home_team_name, if(home_team_goals < away_team_goals, "Loser", "Winner") as Matchstatus
+From premierleague) as b
+Where Matchstatus = "Loser"
+Group By home_team_name) as d 
+ON c.home_team_name = d.home_team_name) as e
+LEFT JOIN 
+(Select Distinct home_team_name, Count(Matchstatus) as Total_Draws
+From
+(
+Select home_team_name, if(home_team_goals = away_team_goals, "Draw", "Result") as Matchstatus
+From premierleague) as b
+Where Matchstatus = "Draw"
+Group By home_team_name
+) as f 
+ON e.home_team_name=f.home_team_name;
+
+/*Total wins, total loses and total draws of each away team*/
+
+CREATE VIEW team_performance_away_team AS
+Select e.away_team_name, e.Total_wins, e.Total_loses, f.Total_draws
+FROM
+(Select c.away_team_name, c.Total_wins, d.Total_loses 
+FROM
+(Select Distinct away_team_name, Count(Matchstatus) as Total_Wins, ''
+From
+(
+Select away_team_name, if(away_team_goals > home_team_goals, "Winner", "Loser") as Matchstatus
+From premierleague) as b
+Where Matchstatus = "winner"
+Group By away_team_name) as c
+LEFT JOIN
+(
+Select Distinct away_team_name, '', Count(Matchstatus) as Total_Loses
+From
+(
+Select away_team_name, if(away_team_goals < home_team_goals, "Loser", "Winner") as Matchstatus
+From premierleague) as b
+Where Matchstatus = "Loser"
+Group By away_team_name) as d 
+ON c.away_team_name = d.away_team_name) as e
+LEFT JOIN 
+(Select Distinct away_team_name, Count(Matchstatus) as Total_Draws
+From
+(
+Select away_team_name, if(away_team_goals = home_team_goals, "Draw", "Result") as Matchstatus
+From premierleague) as b
+Where Matchstatus = "Draw"
+Group By away_team_name
+) as f 
+ON e.away_team_name=f.away_team_name;
+
+
+
+
+
+/* 3 Points for Winner, 1 Points for Draw, 0 Points For Defeat */ 
+/*Premier League Table*/
+With temptable as 
+(
+SELECT a.home_team_name, a.Total_Home_Point, b.Total_Away_Points
+FROM (
+SELECT home_team_name, 3*Total_wins + 0*ifnull(Total_loses,0) + 1*ifnull(Total_Draws,0) as Total_Home_Point
+FROM team_performance_home_team) as a
+LEFT JOIN
+(SELECT away_team_name, 3*Total_wins + 0*ifnull(Total_loses,0) + 1*ifnull(Total_Draws,0) as Total_away_points
+FROM team_performance_away_team) as b
+On a.home_team_name = b.away_team_name)
+
+SELECT home_team_name, Total_home_point + Total_away_points as Total_Points 
+From temptable 
+Order BY 2 DESC;
+
+/*Manchester United Scored the maximum number of points and won the premier league*/
+
+
+
