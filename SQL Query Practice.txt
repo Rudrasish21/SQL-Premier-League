@@ -118,7 +118,7 @@ SELECT home_team_name, Total_home_point + Total_away_points as Total_Points
 From temptable 
 Order BY 2 DESC;
 
-/*Manchester United Scored the maximum number of points and won the premier league*/
+/*Manchester City Scored the maximum number of points and won the premier league*/
 
 
 
